@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 clipboard-win = "4.2.1"
+random-string = "1.0.0"
