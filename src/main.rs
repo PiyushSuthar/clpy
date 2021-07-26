@@ -1,7 +1,21 @@
-use clipboard_win::{formats, get_clipboard};
+use clipboard_win::{formats, get_clipboard, is_format_avail};
 use std::{env, fs};
 
+use crate::utils::{path_exists, random_string};
+
+mod utils;
+
 fn main() {
+    // Checking if there's an image in clipboard
+    if is_format_avail(formats::CF_BITMAP) {
+        handler()
+    } else {
+        println!("No Image in clipboard");
+        println!("Please copy an Image first :)");
+    }
+}
+
+fn handler() {
     // Taking args in cli
     let args: Vec<String> = env::args().collect();
 
@@ -15,10 +29,10 @@ fn main() {
             if args.len() > 1 {
                 // Taking name from args
                 let file_name = &args[1];
-                handle_image_data(file_name.as_str(), data)
+                save_image(file_name.as_str(), data)
             } else {
                 // Else use clpy_image as the name
-                handle_image_data("clpy_image", data)
+                save_image("clpy_image", data)
             }
         }
         Err(_) => {
@@ -28,10 +42,23 @@ fn main() {
     }
 }
 
-fn handle_image_data(file_name: &str, content: Vec<u8>) {
-    // Logging out a message
-    println!("Saving copied image as {}.png", file_name);
+fn save_image(file_name: &str, content: Vec<u8>) {
+    let file_path = format!("{}.png", file_name);
 
-    // Writing image
-    fs::write(format!("{}.png", file_name), content).expect("Failed to create Image")
+    if path_exists(&file_path) {
+        // Getting random string
+        let random = random_string();
+        println!(
+            "{file_name}.png already exists. So we saved the image as {file_name}-{random}.png ",
+            file_name = file_name,
+            random = random
+        );
+        // Writing image
+        fs::write(format!("{}-{}.png", file_name, random), content).expect("Failed to create Image")
+    } else {
+        // Logging out a message
+        println!("Saving copied image as {}", file_path);
+        // Writing image
+        fs::write(file_path, content).expect("Failed to create Image")
+    }
 }
