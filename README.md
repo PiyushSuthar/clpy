@@ -8,19 +8,13 @@ It works only on windows as of now. I'll be adding support for other platforms s
 
 ## Usage
 
-Download `clpy.exe` from release page and save it somewhere.
+![image](./.github/example.gif)
 
-Next add that path to your Path environment variable.
+    cargo install --git https://github.com/PiyushSuthar/clpy.git
 
 Now you can use it as a command line tool.
 
     clpy [file_name]
-
-It has only one argument, `file_name`, which is the name of the image file you want to save.
-
-The name should be without a `.png` extension.
-
-The argument is optional. If you don't specify it, it will save the image from clipboard as `clpy_image.png`.
 
 ---
 

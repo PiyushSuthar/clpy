@@ -1,10 +1,17 @@
 [package]
 name = "clpy"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2018"
+authors = ["Piyush Suthar <https://github.com/PiyushSuthar>"]
+exclude = [".github/", ".gitignore", "README.md"]
+license = "MIT OR Apache-2.0"
+rust-version = "1.76.0"
+description = "Save image from your clipboard  as an image file directly from your command line!"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clipboard-win = "4.2.1"
+clap = "4.5.8"
+clipboard-win = "5.3.1"
+image = "0.25.1"
 random-string = "1.0.0"

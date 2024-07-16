@@ -1,23 +1,32 @@
+use clap::arg;
 use clipboard_win::{formats, get_clipboard, is_format_avail};
-use std::{env, fs};
-
-use crate::utils::{path_exists, random_string};
-
-mod utils;
+use std::{
+    env,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 fn main() {
-    // Checking if there's an image in clipboard
-    if is_format_avail(formats::CF_BITMAP) {
-        handler()
-    } else {
-        println!("No Image in clipboard");
-        println!("Please copy an Image first :)");
-    }
-}
+    let cli = clap::Command::new("clpy")
+        .author("clpy contributors https://github.com/PiyushSuthar/clpy")
+        .version(env!("CARGO_PKG_VERSION"))
+        .about("Save copied image from clipboard as an image file directly from your command line!")
+        .arg(
+            arg!(<file_name> "Name of the image file you want to save. If \"-\" data will be written to stdout")
+                .required(false)
+                .value_parser(clap::value_parser!(String))
+        )
+        .arg(arg!(--overwrite "Overwrite existing image file").required(false))
+        .try_get_matches()
+        .unwrap_or_else(|e| {
+            eprintln!("{}", e);
+            std::process::exit(1);
+        });
 
-fn handler() {
-    // Taking args in cli
-    let args: Vec<String> = env::args().collect();
+    if !is_format_avail(formats::CF_BITMAP) {
+        eprintln!("No Image in clipboard");
+        std::process::exit(1);
+    }
 
     // Getting buffer frmo Clipboard
     let buffer_bitmap = get_clipboard(formats::Bitmap);
@@ -25,40 +34,43 @@ fn handler() {
     // handling errors
     match buffer_bitmap {
         Ok(data) => {
-            // If name is parsed, use that name for image.
-            if args.len() > 1 {
-                // Taking name from args
-                let file_name = &args[1];
-                save_image(file_name.as_str(), data)
+            let file_path = cli.get_one::<String>("file_name").unwrap();
+            if file_path == "-" {
+                write_image_to_stdout(data)
             } else {
-                // Else use clpy_image as the name
-                save_image("clpy_image", data)
+                let file_path = PathBuf::from(file_path);
+                save_image_to_file(&file_path, data, cli.get_flag("overwrite"));
             }
         }
         Err(_) => {
-            // Incase of error
-            println!("Please copy an Image first :)")
+            eprintln!("Please copy an Image first :)")
         }
     }
 }
 
-fn save_image(file_name: &str, content: Vec<u8>) {
-    let file_path = format!("{}.png", file_name);
+fn write_image_to_stdout(data: Vec<u8>) {
+    std::io::stdout().write_all(&data).unwrap_or_else(|e| {
+        eprintln!("Failed to write to stdout: {}", e);
+        std::process::exit(1);
+    });
+}
 
-    if path_exists(&file_path) {
-        // Getting random string
-        let random = random_string();
-        println!(
-            "{file_name}.png already exists. So we saved the image as {file_name}-{random}.png ",
-            file_name = file_name,
-            random = random
+fn save_image_to_file(file_path: &Path, content: Vec<u8>, overwrite: bool) {
+    let image = image::load_from_memory(&content).unwrap_or_else(|_| {
+        eprintln!("Failed to load image from clipboard");
+        std::process::exit(1);
+    });
+
+    if file_path.exists() && !overwrite {
+        eprintln!(
+            "File {} already exists. Use --overwrite to overwrite it",
+            file_path.display()
         );
-        // Writing image
-        fs::write(format!("{}-{}.png", file_name, random), content).expect("Failed to create Image")
-    } else {
-        // Logging out a message
-        println!("Saving copied image as {}", file_path);
-        // Writing image
-        fs::write(file_path, content).expect("Failed to create Image")
+        std::process::exit(1);
     }
+
+    image.save(file_path).unwrap_or_else(|e| {
+        eprintln!("Failed to save image to {}: {}", file_path.display(), e);
+        std::process::exit(1);
+    });
 }
